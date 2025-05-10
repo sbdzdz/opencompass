@@ -133,3 +133,8 @@ turbomind/
 
 # aliyun
 core.*
+
+# logs
+*.out
+*.err
+*.log
