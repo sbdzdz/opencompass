@@ -69,7 +69,7 @@ class TurboMindModelwithChatTemplate(BaseModel):
             generation_config = GenerationConfig.from_pretrained(path)
         except:
             generation_config = None
-        if generation_config and hasattr(generation_config, 'eos_token_id'):
+        if generation_config and getattr(generation_config, 'eos_token_id', None) is not None:
             if isinstance(generation_config.eos_token_id, int):
                 potential_stop_words.append(self.tokenizer.decode(generation_config.eos_token_id))
             else:
