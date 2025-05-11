@@ -12,7 +12,6 @@ python run.py \
     lmdeploy_internvl_3_2b_instruct \
     hf_qwen2vl_2b_base \
     hf_qwen2vl_2b_sft \
-
   --datasets \
     ceval_gen_2daf24 \
     CLUE_C3_gen_8c358f \
