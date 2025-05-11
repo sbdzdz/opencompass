@@ -21,4 +21,4 @@ source $HOME/.bashrc
 source $HOME/opencompass/.venv/bin/activate
 
 
-./eval.sh $additional_args > $HOME/opencompass/slurm/eval_$SLURM_JOB_ID.out 2> $HOME/opencompass/slurm/eval_$SLURM_JOB_ID.err
+./eval.sh $additional_args

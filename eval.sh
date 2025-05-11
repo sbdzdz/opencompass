@@ -1,17 +1,9 @@
 python run.py \
   --models \
-    lmdeploy_internvl_2_5_1b_base \
-    lmdeploy_internvl_2_5_1b_instruct \
-    lmdeploy_internvl_2_5_2b_base \
-    lmdeploy_internvl_2_5_2b_instruct \
-    lmdeploy_internvl_2_5_4b_base \
-    lmdeploy_internvl_2_5_4b_instruct \
     lmdeploy_internvl_3_1b_base \
     lmdeploy_internvl_3_1b_instruct \
     lmdeploy_internvl_3_2b_base \
     lmdeploy_internvl_3_2b_instruct \
-    hf_qwen2vl_2b_base \
-    hf_qwen2vl_2b_sft \
   --datasets \
     ceval_gen_2daf24 \
     CLUE_C3_gen_8c358f \
@@ -30,4 +22,3 @@ python run.py \
     triviaqa_gen_2121ce \
     winogrande_5shot_gen_b36770 \
     bbh_gen_5b92b0
-    #bbh_gen \
