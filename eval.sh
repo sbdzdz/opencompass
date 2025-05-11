@@ -29,4 +29,4 @@ python run.py \
     TheoremQA_5shot_gen_6f0af8 \
     triviaqa_gen_2121ce \
     winogrande_5shot_gen_b36770 \
-    bbh_gen_5b92b0
+    #bbh_gen_5b92b0
