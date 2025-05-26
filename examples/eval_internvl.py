@@ -2,8 +2,6 @@ from mmengine.config import read_base
 
 from opencompass.models import TurboMindModelwithChatTemplate
 
-MAX_TOKENS_VALUES = [1024, 2048, 4096, 8192]
-
 with read_base():
     from opencompass.configs.datasets.ceval.ceval_gen_2daf24 import ceval_datasets
     from opencompass.configs.datasets.CLUE_C3.CLUE_C3_gen_8c358f import C3_datasets
@@ -21,6 +19,8 @@ with read_base():
     from opencompass.configs.datasets.TheoremQA.TheoremQA_5shot_gen_6f0af8 import TheoremQA_datasets
     from opencompass.configs.datasets.triviaqa.triviaqa_gen_2121ce import triviaqa_datasets
     from opencompass.configs.datasets.winogrande.winogrande_5shot_gen_b36770 import winogrande_datasets
+
+MAX_TOKENS_VALUES = [8, 16, 32, 64, 128]
 
 datasets = [
     *ceval_datasets,
@@ -61,19 +61,16 @@ model_paths = [
     'OpenGVLab/InternVL3-2B-Instruct',
 ]
 
-def get_model_abbr(path, max_tokens):
-    base_abbr = path.split('/')[-1].lower()
-    return f"{base_abbr}-{max_tokens}"
 
 models = [
     dict(
         type=TurboMindModelwithChatTemplate,
-        abbr=get_model_abbr(path, max_tokens),
+        abbr=f"{path.split('/')[-1].lower()}-{max_tokens}",
         path=path,
         engine_config=dict(session_len=16384, max_batch_size=16, tp=1),
         gen_config=dict(top_k=1, temperature=1e-6, top_p=0.9, max_new_tokens=max_tokens),
         max_seq_len=16384,
-        max_out_len=16384,
+        max_out_len=max_tokens,
         batch_size=16,
         run_cfg=dict(num_gpus=1),
     )
