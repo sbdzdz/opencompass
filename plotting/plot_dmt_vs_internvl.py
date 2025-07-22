@@ -20,13 +20,13 @@ def main():
     model_columns_1b = [
         ("DMT-1B-10B", "1b_10b-32", csv_dmt),
         ("DMT-1B-20B", "1b_20b-32", csv_dmt),
-        ("InternVL2.5-1B", "internvl2_5-1b-instruct-32", csv_internvl),
+        ("InternVL2.5-1B", "internvl2_5-1b-32", csv_internvl),
         ("InternVL3-1B", "internvl3-1b-instruct-32", csv_internvl),
     ]
     model_columns_2b = [
+        ("DMT-2B-10B", "2b_10b-32", csv_dmt),
         ("DMT-2B-20B", "2b_20b-32", csv_dmt),
-        ("DMT-2B-40B", "2b_40b-32", csv_dmt),
-        ("InternVL2.5-2B", "internvl2_5-2b-instruct-32", csv_internvl),
+        ("InternVL2.5-2B", "internvl2_5-2b-32", csv_internvl),
         ("InternVL3-2B", "internvl3-2b-instruct-32", csv_internvl),
     ]
 
@@ -42,8 +42,12 @@ def main():
         "math": lambda name: name == "math",
         "mbpp_cn": lambda name: name == "mbpp_cn",
         "sanitized_mbpp": lambda name: name == "sanitized_mbpp",
-        "MMLU": lambda name: name.startswith("mmlu-"),
+        "mmlu": lambda name: name.startswith("lukaemon_mmlu_") or name == "mmlu",
+        "nq": lambda name: name == "nq",
+        "race": lambda name: name.startswith("race-"),
         "TheoremQA": lambda name: name == "TheoremQA",
+        "triviaqa": lambda name: name == "triviaqa",
+        "winogrande": lambda name: name == "winogrande",
     }
     PREFERRED_METRICS = ["score", "accuracy", "humaneval_pass@1"]
 
@@ -92,6 +96,19 @@ def get_family_results(DATASET_FAMILIES, PREFERRED_METRICS, dfs):
 
 
 def plot_group(model_columns, plot_filename, plot_title, family_results):
+    legend_order = [
+        "InternVL3-1B",
+        "InternVL2.5-1B",
+        "DMT-1B-20B",
+        "DMT-1B-10B",
+        "InternVL3-2B",
+        "InternVL2.5-2B",
+        "DMT-2B-20B",
+        "DMT-2B-10B",
+    ]
+    model_labels = [label for label, _, _ in model_columns]
+    legend_order = [label for label in legend_order if label in model_labels]
+
     plot_families = []
     plot_data = []
     for family, fam_rows in family_results.items():
@@ -106,18 +123,21 @@ def plot_group(model_columns, plot_filename, plot_title, family_results):
         plot_data.append(vals)
     if not plot_families:
         return
-    model_labels = [label for label, _, _ in model_columns]
     plot_data_arr = np.array(plot_data)
     ind = np.arange(len(plot_families)) * 1.5
     bar_width = 0.18 if len(model_labels) > 3 else 0.25
     plt.figure(figsize=(10, max(6, len(plot_families) * 0.8)))
     plt.gca().set_prop_cycle(None)
+    bar_handles = {}
     for i, label in enumerate(model_labels):
-        plt.barh(ind + i * bar_width, plot_data_arr[:, i], bar_width, label=label)
+        bar = plt.barh(ind + i * bar_width, plot_data_arr[:, i], bar_width, label=label)
+        bar_handles[label] = bar
     plt.yticks(ind + bar_width * (len(model_labels) - 1) / 2, plot_families)
     plt.xlabel("Accuracy (%)")
     plt.title(plot_title)
-    plt.legend()
+    handles = [bar_handles[label] for label in legend_order if label in bar_handles]
+    labels = [label for label in legend_order if label in bar_handles]
+    plt.legend(handles, labels)
     plt.tight_layout()
     plt.savefig(str(plot_filename), dpi=300, bbox_inches="tight")
     plt.close()
