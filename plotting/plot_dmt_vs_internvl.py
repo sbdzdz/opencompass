@@ -8,15 +8,11 @@ def main():
     figures_dir = Path("figures")
     figures_dir.mkdir(exist_ok=True)
 
-    # File paths
-    csv_dmt = Path(
-        "outputs/default/20250714_164426/summary/summary_20250714_164426.csv"
-    )
+    csv_dmt = Path("outputs/default/sweep_32_dcvlm/summary/summary_20250726_144445.csv")
     csv_internvl = Path(
-        "outputs/default/sweep_all_32/summary/summary_20250721_213714.csv"
+        "outputs/default/sweep_32_internvl/summary/summary_20250721_213714.csv"
     )
 
-    # Model columns to compare (split into 1B and 2B)
     model_columns_1b = [
         ("DMT-1B-10B", "1b_10b-32", csv_dmt),
         ("DMT-1B-20B", "1b_20b-32", csv_dmt),
@@ -51,13 +47,11 @@ def main():
     }
     PREFERRED_METRICS = ["score", "accuracy", "humaneval_pass@1"]
 
-    # Read both CSVs
     dfs = {
         csv_dmt: pd.read_csv(csv_dmt),
         csv_internvl: pd.read_csv(csv_internvl),
     }
 
-    # Build family_results using the new function
     family_results = get_family_results(DATASET_FAMILIES, PREFERRED_METRICS, dfs)
 
     plot_group(
@@ -82,7 +76,6 @@ def get_family_results(DATASET_FAMILIES, PREFERRED_METRICS, dfs):
         for metric in PREFERRED_METRICS:
             fam_rows = []
             for which_csv, df in dfs.items():
-                # Find all rows for this family and metric
                 rows = df[df["metric"].str.lower() == metric.lower()]
                 rows = rows[rows["dataset"].apply(match_fn)]
                 if not rows.empty:
