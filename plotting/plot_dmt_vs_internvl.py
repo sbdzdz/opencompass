@@ -8,9 +8,9 @@ def main():
     figures_dir = Path("figures")
     figures_dir.mkdir(exist_ok=True)
 
-    csv_dmt = Path("outputs/default/sweep_32_dcvlm/summary/summary_20250726_144445.csv")
+    csv_dmt = Path("outputs/default/dcvlm_32/summary/summary_20250726_144445.csv")
     csv_internvl = Path(
-        "outputs/default/sweep_32_internvl/summary/summary_20250721_213714.csv"
+        "outputs/default/internvl_32/summary/summary_20250721_213714.csv"
     )
 
     model_columns_1b = [
