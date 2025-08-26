@@ -25,7 +25,7 @@ OPENAI_API_BASE = os.path.join(
 OPENAISDK_API_BASE = os.environ.get('OPENAI_BASE_URL',
                                     'https://api.openai.com/v1/')
 
-O1_MODEL_LIST = ['o1', 'o3', 'o4']
+OAI_REASONING_MODEL_LIST = ['o1', 'o3', 'o4', 'gpt-5']
 
 
 @MODELS.register_module()
@@ -71,6 +71,9 @@ class OpenAI(BaseAPIModel):
             the request
         think_tag (str, optional): The tag to use for reasoning content.
             Defaults to '</think>'.
+        max_workers (int, optional): Maximum number of worker threads for
+            concurrent API requests. For I/O-intensive API calls, recommended
+            value is 10-20. Defaults to None (uses CPU count * 2).
     """
 
     is_api: bool = True
@@ -95,6 +98,7 @@ class OpenAI(BaseAPIModel):
         extra_body: Optional[Dict] = None,
         verbose: bool = False,
         think_tag: str = '</think>',
+        max_workers: Optional[int] = None,
     ):
 
         super().__init__(
@@ -118,6 +122,12 @@ class OpenAI(BaseAPIModel):
         self.hf_tokenizer = None
         self.extra_body = extra_body
         self.think_tag = think_tag
+
+        if max_workers is None:
+            cpu_count = os.cpu_count() or 1
+            self.max_workers = min(32, (cpu_count + 5) * 2)
+        else:
+            self.max_workers = max_workers
 
         if isinstance(key, str):
             if key == 'ENV':
@@ -175,7 +185,7 @@ class OpenAI(BaseAPIModel):
         if self.temperature is not None:
             temperature = self.temperature
 
-        with ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             results = list(
                 tqdm(
                     executor.map(
@@ -245,7 +255,8 @@ class OpenAI(BaseAPIModel):
                 header['OpenAI-Organization'] = self.orgs[self.org_ctr]
 
             try:
-                if any(model in self.path for model in O1_MODEL_LIST):
+                if any(model in self.path
+                       for model in OAI_REASONING_MODEL_LIST):
                     self.logger.warning(
                         f"'max_token' is unsupported for model {self.path}")
                     self.logger.warning(
@@ -556,27 +567,31 @@ class OpenAI(BaseAPIModel):
 
 class OpenAISDK(OpenAI):
 
-    def __init__(self,
-                 path: str = 'gpt-3.5-turbo',
-                 max_seq_len: int = 16384,
-                 query_per_second: int = 1,
-                 rpm_verbose: bool = False,
-                 retry: int = 2,
-                 key: str | List[str] = 'ENV',
-                 org: str | List[str] | None = None,
-                 meta_template: Dict | None = None,
-                 openai_api_base: str | List[str] = OPENAISDK_API_BASE,
-                 openai_proxy_url: Optional[str] = None,
-                 mode: str = 'none',
-                 logprobs: bool | None = False,
-                 top_logprobs: int | None = None,
-                 temperature: float | None = None,
-                 tokenizer_path: str | None = None,
-                 extra_body: Dict | None = None,
-                 verbose: bool = False,
-                 http_client_cfg: dict = {},
-                 status_code_mappings: dict = {},
-                 think_tag: str = '</think>'):
+    def __init__(
+        self,
+        path: str = 'gpt-3.5-turbo',
+        max_seq_len: int = 16384,
+        query_per_second: int = 1,
+        rpm_verbose: bool = False,
+        retry: int = 2,
+        key: str | List[str] = 'ENV',
+        org: str | List[str] | None = None,
+        meta_template: Dict | None = None,
+        openai_api_base: str | List[str] = OPENAISDK_API_BASE,
+        openai_proxy_url: Optional[str] = None,
+        mode: str = 'none',
+        logprobs: bool | None = False,
+        top_logprobs: int | None = None,
+        temperature: float | None = None,
+        tokenizer_path: str | None = None,
+        extra_body: Dict | None = None,
+        verbose: bool = False,
+        http_client_cfg: dict = {},
+        status_code_mappings: dict = {},
+        think_tag: str = '</think>',
+        max_workers: Optional[int] = None,
+        openai_extra_kwargs: Dict | None = None,
+    ):
         super().__init__(
             path,
             max_seq_len,
@@ -595,6 +610,7 @@ class OpenAISDK(OpenAI):
             tokenizer_path,
             extra_body,
             verbose=verbose,
+            max_workers=max_workers,
         )
         from openai import OpenAI
 
@@ -622,6 +638,7 @@ class OpenAISDK(OpenAI):
             self.logger.info(f'Used openai_client: {self.openai_client}')
         self.status_code_mappings = status_code_mappings
         self.think_tag = think_tag
+        self.openai_extra_kwargs = openai_extra_kwargs
 
     def _generate(
         self,
@@ -653,7 +670,7 @@ class OpenAISDK(OpenAI):
         num_retries = 0
         while num_retries < self.retry:
             self.wait()
-            if any(model in self.path for model in O1_MODEL_LIST):
+            if any(model in self.path for model in OAI_REASONING_MODEL_LIST):
                 self.logger.warning(
                     f"'max_token' is unsupported for model {self.path}")
                 self.logger.warning(
@@ -674,6 +691,9 @@ class OpenAISDK(OpenAI):
                     messages=messages,
                     extra_body=self.extra_body,
                 )
+
+            if self.openai_extra_kwargs:
+                query_data.update(self.openai_extra_kwargs)
 
             try:
                 if self.verbose:
@@ -702,6 +722,12 @@ class OpenAISDK(OpenAI):
                         self.logger.info(
                             'Server does not return any content '
                             'and stop reason is <stop>, '
+                            'the input query is: %s', query_data)
+                        return ''
+                    if responses.choices[0].finish_reason == 'content_filter':
+                        self.logger.info(
+                            'The answer for this question is filted,'
+                            'the stop reason is <content_filter>, '
                             'the input query is: %s', query_data)
                         return ''
                     self.logger.error(
